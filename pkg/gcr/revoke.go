@@ -2,13 +2,14 @@ package gcr
 
 import (
 	"fmt"
-	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
-	"github.com/theupdateframework/notary/client"
-	"github.com/theupdateframework/notary/tuf/data"
+
+	"github.com/SimonXming/notary-gcr/trust"
 	"github.com/google/go-containerregistry/pkg/authn"
 	"github.com/google/go-containerregistry/pkg/name"
-	"github.com/SimonXming/notary-gcr/trust"
+	"github.com/pkg/errors"
+	log "github.com/sirupsen/logrus"
+	"github.com/theupdateframework/notary/client"
+	"github.com/theupdateframework/notary/tuf/data"
 )
 
 func revokeImage(ref name.Reference, tag string, auth authn.Authenticator, config *trust.Config) error {
@@ -25,7 +26,7 @@ func revokeImage(ref name.Reference, tag string, auth authn.Authenticator, confi
 	if err := revokeSignature(notaryRepo, tag); err != nil {
 		return errors.Wrapf(err, "could not remove signature for %s", tag)
 	}
-	logrus.Infof("Successfully deleted signature for %s\n", tag)
+	log.Infof("Successfully deleted signature for %s\n", tag)
 	return nil
 }
 

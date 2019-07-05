@@ -1,12 +1,12 @@
 package trust
 
 import (
-	"os"
-	"io/ioutil"
 	"encoding/json"
+	"io/ioutil"
+	"os"
 	"path/filepath"
 
-	"github.com/sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 )
 
 type Config struct {
@@ -18,15 +18,12 @@ type Config struct {
 
 const (
 	// configDir is the root path for configuration
-	configFileDir = ".notary"
+	configFileDir  = ".notary"
 	configFileName = "gcr-config.json"
 )
 
 var (
 	configDir = os.Getenv("NOTARY_CONFIG_DIR")
-	notaryServerUrl = "https://10.160.23.6:4443"
-	rootPassphrase = "123456789"
-	repositoryPassphrase = "123456789"
 )
 
 func init() {
@@ -34,10 +31,12 @@ func init() {
 		configDir = filepath.Join(os.Getenv("HOME"), configFileDir)
 	}
 	if !filepath.IsAbs(configDir) {
-		logrus.Warnf("config directory %s maybe wrong, not absolute path", configDir)
+		log.Warnf("config directory %s maybe wrong, not absolute path", configDir)
 	}
 }
 
+// ParseConfig read configfile (${configDir}/${configFileName})
+// returns a Config object and error.
 func ParseConfig() (*Config, error) {
 	configFilePath := filepath.Join(configDir, configFileName)
 	configFile, err := ioutil.ReadFile(configFilePath)
