@@ -54,7 +54,7 @@ func (repo *TrustedGcrRepository) Verify() (*client.Target, error) {
 func (repo *TrustedGcrRepository) SignImage(img v1.Image) error {
 	err := signImage(repo.ref, img, repo.auth, repo.config)
 	if err != nil {
-		log.Errorf("failed to verify repository: %s", err)
+		log.Errorf("failed to sign image: %s", err)
 		return err
 	}
 	return nil
