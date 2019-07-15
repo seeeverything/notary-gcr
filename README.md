@@ -4,7 +4,7 @@ Go library providing high-level Notary API for go-containerregistry.
 ## Usage
 
 ```go
-import "github.com/SimonXming/notary-gcr/pkg/gcr"
+import "github.com/simonshyu/notary-gcr/pkg/gcr"
 ```
 
 
