@@ -18,8 +18,9 @@ type Config struct {
 
 const (
 	// configDir is the root path for configuration
-	configDirEnv   = "NOTARY_CONFIG_DIR"
-	configFileName = "gcr-config.json"
+	configDirEnv          = "NOTARY_CONFIG_DIR"
+	configFileNameEnv     = "NOTARY_CONFIG_FILENAME"
+	defaultConfigFileName = "gcr-config.json"
 )
 
 // ParseConfig read configfile (${configDir}/${configFileName})
@@ -31,6 +32,11 @@ func ParseConfig() (*Config, error) {
 	}
 	if !filepath.IsAbs(configDir) {
 		log.Warnf("config directory %s maybe wrong, not absolute path", configDir)
+	}
+
+	configFileName := os.Getenv(configFileNameEnv)
+	if configFileName == "" {
+		configFileName = defaultConfigFileName
 	}
 
 	configFilePath := filepath.Join(configDir, configFileName)
