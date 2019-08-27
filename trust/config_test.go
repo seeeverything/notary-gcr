@@ -20,10 +20,9 @@ func TestParseFullConfig(t *testing.T) {
 		log.Fatal(err)
 	}
 
-	os.Setenv("NOTARY_CONFIG_DIR", filepath.Dir(configFile.Name()))
 	os.Setenv("NOTARY_CONFIG_FILENAME", filepath.Base(configFile.Name()))
 
-	conf, err:= ParseConfig()
+	conf, err:= ParseConfig(filepath.Dir(configFile.Name()))
 	assert.NilError(t, err)
 	assert.Check(t, is.Equal(conf.ServerUrl, "https://127.0.0.1:4443"))
 	assert.Check(t, is.Equal(conf.RootPassphrase, "root"))
@@ -44,10 +43,9 @@ func TestParsePartialConfig(t *testing.T) {
 		log.Fatal(err)
 	}
 
-	os.Setenv("NOTARY_CONFIG_DIR", filepath.Dir(configFile.Name()))
 	os.Setenv("NOTARY_CONFIG_FILENAME", filepath.Base(configFile.Name()))
 
-	conf, err:= ParseConfig()
+	conf, err:= ParseConfig(filepath.Dir(configFile.Name()))
 	assert.NilError(t, err)
 	assert.Check(t, is.Equal(conf.ServerUrl, ""))
 	assert.Check(t, is.Equal(conf.RootPassphrase, "root"))
@@ -60,7 +58,7 @@ func TestParsePartialConfig(t *testing.T) {
 	if _, err := configFile.Write([]byte(`{"server_url": "https://127.0.0.1:4443", "repository_passphrase": "repo"}`)); err != nil {
 		log.Fatal(err)
 	}
-	conf, err = ParseConfig()
+	conf, err = ParseConfig(filepath.Dir(configFile.Name()))
 	assert.NilError(t, err)
 	assert.Check(t, is.Equal(conf.ServerUrl, "https://127.0.0.1:4443"))
 	assert.Check(t, is.Equal(conf.RootPassphrase, ""))

@@ -1,10 +1,10 @@
 package gcr
 
 import (
-	"github.com/simonshyu/notary-gcr/trust"
 	"github.com/google/go-containerregistry/pkg/authn"
 	"github.com/google/go-containerregistry/pkg/name"
 	v1 "github.com/google/go-containerregistry/pkg/v1"
+	"github.com/simonshyu/notary-gcr/trust"
 	log "github.com/sirupsen/logrus"
 	"github.com/theupdateframework/notary/client"
 )
@@ -15,8 +15,8 @@ type TrustedGcrRepository struct {
 	config *trust.Config
 }
 
-func NewTrustedGcrRepository(ref name.Reference, auth authn.Authenticator) (TrustedGcrRepository, error) {
-	config, err := trust.ParseConfig()
+func NewTrustedGcrRepository(configDir string, ref name.Reference, auth authn.Authenticator) (TrustedGcrRepository, error) {
+	config, err := trust.ParseConfig(configDir)
 	if err != nil {
 		log.Errorf("failed to parse config: %s", err)
 		return TrustedGcrRepository{}, err

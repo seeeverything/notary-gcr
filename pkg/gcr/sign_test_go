@@ -1,0 +1,214 @@
+
+package gcr
+
+import (
+	"os"
+	"testing"
+	"crypto/rand"
+	"fmt"
+	"sort"
+	"io/ioutil"
+	"net/http"
+	"net/http/httptest"
+	"context"
+
+	"github.com/docker/go/canonical/json"
+	"github.com/simonshyu/notary"
+	"github.com/simonshyu/notary/client"
+	"github.com/simonshyu/notary/server"
+	"github.com/simonshyu/notary/cryptoservice"
+	"github.com/simonshyu/notary/passphrase"
+	"github.com/simonshyu/notary/server/storage"
+	"github.com/simonshyu/notary/trustmanager"
+	"github.com/simonshyu/notary/tuf/data"
+	"github.com/simonshyu/notary/tuf/utils"
+	"gotest.tools/assert"
+	is "gotest.tools/assert/cmp"
+)
+
+
+const password = "passphrase"
+
+type passRoleRecorder struct {
+	rolesCreated []string
+	rolesAsked   []string
+}
+
+func newRoleRecorder() *passRoleRecorder {
+	return &passRoleRecorder{}
+}
+
+func (p *passRoleRecorder) clear() {
+	p.rolesCreated = nil
+	p.rolesAsked = nil
+}
+
+func (p *passRoleRecorder) retriever(_, alias string, createNew bool, _ int) (string, bool, error) {
+	if createNew {
+		p.rolesCreated = append(p.rolesCreated, alias)
+	} else {
+		p.rolesAsked = append(p.rolesAsked, alias)
+	}
+	return password, false, nil
+}
+
+func (p *passRoleRecorder) compareRolesRecorded(t *testing.T, expected []string, created bool,
+	args ...interface{}) {
+
+	var actual, useExpected sort.StringSlice
+	copy(expected, useExpected) // don't sort expected, since we don't want to mutate it
+	sort.Stable(useExpected)
+
+	if created {
+		copy(p.rolesCreated, actual)
+	} else {
+		copy(p.rolesAsked, actual)
+	}
+	sort.Stable(actual)
+
+	// require.Equal(t, useExpected, actual, args...)
+	assert.Check(t, is.Equal(useExpected, actual))
+}
+
+// requires the following keys be created: order does not matter
+func (p *passRoleRecorder) requireCreated(t *testing.T, expected []string, args ...interface{}) {
+	p.compareRolesRecorded(t, expected, true, args...)
+}
+
+// requires that passwords be asked for the following keys: order does not matter
+func (p *passRoleRecorder) requireAsked(t *testing.T, expected []string, args ...interface{}) {
+	p.compareRolesRecorded(t, expected, false, args...)
+}
+
+var passphraseRetriever = passphrase.ConstantRetriever(password)
+
+func simpleTestServer(t *testing.T, roles ...string) (
+	*httptest.Server, *http.ServeMux, map[string]data.PrivateKey) {
+
+	if len(roles) == 0 {
+		roles = []string{data.CanonicalTimestampRole.String(), data.CanonicalSnapshotRole.String()}
+	}
+	keys := make(map[string]data.PrivateKey)
+	mux := http.NewServeMux()
+
+	for _, role := range roles {
+		key, err := utils.GenerateECDSAKey(rand.Reader)
+		assert.NilError(t, err)
+
+		keys[role] = key
+		pubKey := data.PublicKeyFromPrivate(key)
+		jsonBytes, err := json.MarshalCanonical(&pubKey)
+		assert.NilError(t, err)
+		keyJSON := string(jsonBytes)
+
+		// TUF will request /v2/docker.com/notary/_trust/tuf/<role>.key
+		mux.HandleFunc(
+			fmt.Sprintf("/v2/docker.com/notary/_trust/tuf/%s.key", role),
+			func(w http.ResponseWriter, r *http.Request) {
+				fmt.Fprint(w, keyJSON)
+			})
+	}
+
+	ts := httptest.NewServer(mux)
+	return ts, mux, keys
+}
+
+func fullTestServer(t *testing.T) *httptest.Server {
+	// Set up server
+	ctx := context.WithValue(
+		context.Background(), notary.CtxKeyMetaStore, storage.NewMemStorage())
+
+	// Do not pass one of the const KeyAlgorithms here as the value! Passing a
+	// string is in itself good test that we are handling it correctly as we
+	// will be receiving a string from the configuration.
+	ctx = context.WithValue(ctx, notary.CtxKeyKeyAlgo, "ecdsa")
+
+	// Eat the logs instead of spewing them out
+	// var b bytes.Buffer
+	// l := logrus.New()
+	// l.Out = &b
+	// ctx = ctxu.WithLogger(ctx, logrus.NewEntry(l))
+
+	cryptoService := cryptoservice.NewCryptoService(trustmanager.NewKeyMemoryStore(passphraseRetriever))
+	return httptest.NewServer(server.RootHandler(ctx, nil, cryptoService, nil, nil, nil))
+}
+
+
+// initializes a repository in a temporary directory
+func initializeRepo(t *testing.T, rootType, gun, url string,
+	serverManagesSnapshot bool) (*client.Repository, string, string) {
+
+	// Temporary directory where test files will be created
+	tempBaseDir, err := ioutil.TempDir("", "notary-test-")
+	require.NoError(t, err, "failed to create a temporary directory: %s", err)
+
+	serverManagedRoles := []data.RoleName{}
+	if serverManagesSnapshot {
+		serverManagedRoles = []data.RoleName{data.CanonicalSnapshotRole}
+	}
+
+	repo, rec, rootPubKeyID := createRepoAndKey(t, rootType, tempBaseDir, gun, url)
+
+	err = repo.Initialize([]string{rootPubKeyID}, serverManagedRoles...)
+	if err != nil {
+		os.RemoveAll(tempBaseDir)
+	}
+	require.NoError(t, err, "error creating repository: %s", err)
+
+	// generates the target role, maybe the snapshot role
+	if serverManagesSnapshot {
+		rec.requireCreated(t, []string{data.CanonicalTargetsRole.String()})
+	} else {
+		rec.requireCreated(t, []string{data.CanonicalTargetsRole.String(), data.CanonicalSnapshotRole.String()})
+	}
+	// root key is cached by the cryptoservice, so when signing we don't actually ask
+	// for the passphrase
+	rec.requireAsked(t, nil)
+	return repo, rootPubKeyID, tempBaseDir
+}
+
+// Creates a new repository and adds a root key.  Returns the repo and key ID.
+func createRepoAndKey(t *testing.T, rootType, tempBaseDir, gun, url string) (*client.repository, *passRoleRecorder, string) {
+
+	rec := newRoleRecorder()
+	repo, err := client.NewFileCachedRepository(
+		tempBaseDir, data.GUN(gun), url, http.DefaultTransport, rec.retriever, trustpinning.TrustPinConfig{})
+	require.NoError(t, err, "error creating repo: %s", err)
+
+	rootPubKey, err := testutils.CreateOrAddKey(repo.GetCryptoService(), data.CanonicalRootRole, repo.GetGUN(), rootType)
+	require.NoError(t, err, "error generating root key: %s", err)
+
+	rec.requireCreated(t, []string{data.CanonicalRootRole.String()},
+		"root passphrase should have been required to generate a root key")
+	rec.requireAsked(t, nil)
+	rec.clear()
+
+	return repo, rec, rootPubKey.ID()
+}
+
+
+// TestListTarget fakes serving signed metadata files over the test's
+// internal HTTP server to ensure that ListTargets returns the correct number
+// of listed targets.
+// We test this with both an RSA and ECDSA root key
+func TestListTarget(t *testing.T) {
+	testListEmptyTargets(t, data.ECDSAKey)
+	// testListTarget(t, data.ECDSAKey)
+	// testListTargetWithDelegates(t, data.ECDSAKey)
+	// if !testing.Short() {
+	// 	testListEmptyTargets(t, data.RSAKey)
+	// 	testListTarget(t, data.RSAKey)
+	// 	testListTargetWithDelegates(t, data.RSAKey)
+	// }
+}
+
+func testListEmptyTargets(t *testing.T, rootType string) {
+	ts := fullTestServer(t)
+	defer ts.Close()
+
+	repo, _, baseDir := initializeRepo(t, rootType, "docker.com/notary", ts.URL, false)
+	defer os.RemoveAll(baseDir)
+
+	_, err := repo.ListTargets(data.CanonicalTargetsRole)
+	require.Error(t, err) // no trust data
+}

@@ -18,6 +18,7 @@ endif
 all: clean fmt_check test test_with_coverage
 
 # Run tests on all non-vendor directories
+.PHONY: test
 test: TESTOPTS =
 test:
 	@echo "+ $@ $(TESTOPTS)"

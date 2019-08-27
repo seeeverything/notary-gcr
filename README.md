@@ -14,7 +14,7 @@ Construct a new Trusted GCR Repository, then use the various action support by t
 auth := &authn.Basic{...}
 ref, _ := name.ParseReference("docker-registry.com/foo/image:latest", name.WeakValidation)
 
-trustedRepo, _ := gcr.NewTrustedGcrRepository(ref, auth)
+trustedRepo, _ := gcr.NewTrustedGcrRepository("~/.notary", ref, auth)
 ```
 
 ## Limitation
