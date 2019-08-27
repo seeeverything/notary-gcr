@@ -25,10 +25,12 @@ const (
 
 // ParseConfig read configfile (${configDir}/${configFileName})
 // returns a Config object and error.
-func ParseConfig() (*Config, error) {
-	configDir := os.Getenv(configDirEnv)
+func ParseConfig(configDir string) (*Config, error) {
 	if configDir == "" {
-		configDir = filepath.Join(os.Getenv("HOME"), ".notary")
+		configDir = os.Getenv(configDirEnv)
+		if configDir == "" {
+			configDir = filepath.Join(os.Getenv("HOME"), ".notary")
+		}
 	}
 	if !filepath.IsAbs(configDir) {
 		log.Warnf("config directory %s maybe wrong, not absolute path", configDir)
