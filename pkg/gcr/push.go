@@ -24,7 +24,7 @@ func pushImage(ref name.Reference, img v1.Image, auth authn.Authenticator) error
 		IdleConnTimeout:    30 * time.Second,
 		DisableCompression: true,
 	}
-	err := remote.Write(ref, img, auth, defaultRoundTripper)
+	err := remote.Write(ref, img, remote.WithAuth(auth), remote.WithTransport(defaultRoundTripper))
 	if err != nil {
 		log.Errorf("failed to push image: %s", err)
 		return err
