@@ -94,8 +94,6 @@ func GetNotaryRepository(ref name.Reference, auth authn.Authenticator, repoInfo 
 		TLSClientConfig:     cfg,
 		DisableKeepAlives:   true,
 	}
-	log.Infof("TEST REPOINFO NAME: %s \n", repoInfo.Name())
-	log.Infof("TEST REF: %s \n", ref)
 
 	repo := ref.Context()
 	scopes := []string{repo.Scope(transport.PushScope)}
@@ -106,7 +104,7 @@ func GetNotaryRepository(ref name.Reference, auth authn.Authenticator, repoInfo 
 
 	return client.NewFileCachedRepository(
 		getTrustDirectory(config.RootPath),
-		data.GUN(fmt.Sprintf("%/%s", repoInfo.Name(), ref)),
+		data.GUN(fmt.Sprintf("%s", ref)),
 		server,
 		tr,
 		GetPassphraseRetriever(os.Stdin, os.Stderr, config.RootPassphrase, config.RepositoryPassphrase),
