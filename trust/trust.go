@@ -103,7 +103,7 @@ func GetNotaryRepository(ref name.Reference, auth authn.Authenticator, repoInfo 
 	}
 	ecrURIwithoutTag := strings.Split(ref, ":")[0]
 
-	log.Infof("using ref as certificate directory: %s \n", ecrURIwithoutTag)
+	log.Infof("using ref as certificate directory: %s \n", fmt.Sprintf("%s", ecrURIwithoutTag))
 
 	return client.NewFileCachedRepository(
 		getTrustDirectory(config.RootPath),
