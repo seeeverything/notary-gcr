@@ -102,6 +102,9 @@ func GetNotaryRepository(ref name.Reference, auth authn.Authenticator, repoInfo 
 		return nil, err
 	}
 
+	log.Infof("TEST REPOINFO NAME: %s \n", repoInfo.Name())
+	log.Infof("TEST REF: %s \n", ref)
+
 	return client.NewFileCachedRepository(
 		getTrustDirectory(config.RootPath),
 		data.GUN(fmt.Sprintf("%/%s", repoInfo.Name(), ref)),
