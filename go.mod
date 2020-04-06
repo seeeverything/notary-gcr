@@ -1,4 +1,4 @@
-module github.com/simonshyu/notary-gcr
+module github.com/seeeverything/notary-gcr
 
 require (
 	github.com/Shopify/logrus-bugsnag v0.0.0-20171204204709-577dee27f20d // indirect

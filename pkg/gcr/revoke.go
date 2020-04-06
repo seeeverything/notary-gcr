@@ -3,7 +3,7 @@ package gcr
 import (
 	"fmt"
 
-	"github.com/simonshyu/notary-gcr/trust"
+	"github.com/seeeverything/notary-gcr/trust"
 	"github.com/google/go-containerregistry/pkg/authn"
 	"github.com/google/go-containerregistry/pkg/name"
 	"github.com/pkg/errors"

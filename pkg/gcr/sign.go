@@ -1,7 +1,7 @@
 package gcr
 
 import (
-	"github.com/simonshyu/notary-gcr/trust"
+	"github.com/seeeverything/notary-gcr/trust"
 	"github.com/google/go-containerregistry/pkg/authn"
 	"github.com/google/go-containerregistry/pkg/name"
 	v1 "github.com/google/go-containerregistry/pkg/v1"

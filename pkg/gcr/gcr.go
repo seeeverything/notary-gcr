@@ -4,7 +4,7 @@ import (
 	"github.com/google/go-containerregistry/pkg/authn"
 	"github.com/google/go-containerregistry/pkg/name"
 	v1 "github.com/google/go-containerregistry/pkg/v1"
-	"github.com/simonshyu/notary-gcr/trust"
+	"github.com/seeeverything/notary-gcr/trust"
 	log "github.com/sirupsen/logrus"
 	"github.com/theupdateframework/notary/client"
 )
