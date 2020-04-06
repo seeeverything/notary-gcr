@@ -104,7 +104,7 @@ func GetNotaryRepository(ref name.Reference, auth authn.Authenticator, repoInfo 
 
 	return client.NewFileCachedRepository(
 		getTrustDirectory(config.RootPath),
-		data.GUN(fmt.Sprintf("%/%s", repoInfo.Name(), ref.Repository())),
+		data.GUN(fmt.Sprintf("%/%s", repoInfo.Name(), ref)),
 		server,
 		tr,
 		GetPassphraseRetriever(os.Stdin, os.Stderr, config.RootPassphrase, config.RepositoryPassphrase),
