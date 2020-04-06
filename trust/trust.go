@@ -101,6 +101,7 @@ func GetNotaryRepository(ref name.Reference, auth authn.Authenticator, repoInfo 
 	if err != nil {
 		return nil, err
 	}
+	log.Infof("using ref as certificate directory: %s \n", ref)
 
 	return client.NewFileCachedRepository(
 		getTrustDirectory(config.RootPath),
